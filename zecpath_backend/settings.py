@@ -29,7 +29,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'core',
     'django_filters',
-
+    'storages',  # Added for Day 53 secure S3 connection storage layer
 ]
 
 MIDDLEWARE = [
@@ -130,10 +130,8 @@ USE_TZ = True
 STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Absolute filesystem path to the directory that will hold user-uploaded files
+# Default fallback absolute filesystem paths for local development
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# URL that handles the media served from MEDIA_ROOT
 MEDIA_URL = '/media/'
 
 # 📧 Day 27: SaaS Communication Infrastructure Development Backend
@@ -157,3 +155,31 @@ CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
 INSTALLED_APPS += [
     'django_celery_beat',
 ]
+
+# ==========================================
+# 6. DAY 53: SECURE PRODUCTION CLOUD STORAGE (SUPABASE S3)
+# ==========================================
+# Checks if S3 Access Keys exist inside the host platform environment controls
+USE_CLOUD_STORAGE = os.environ.get('AWS_ACCESS_KEY_ID') is not None
+
+if USE_CLOUD_STORAGE:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.core.files.storage.StaticFilesStorage",
+        },
+    }
+    
+    # Read Keys from Render Environment Variables panel
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
+    
+    # Security Policy Configuration Tuning
+    AWS_QUERYSTRING_AUTH = True            # Generates temporary cryptographically signed expiring links
+    AWS_QUERYSTRING_EXPIRE = 900           # Link access authorization windows scale up to exactly 15 minutes
+    AWS_DEFAULT_ACL = None                 # Enforces strict inheritance from private bucket configurations
+    AWS_S3_FILE_OVERWRITE = False          # Appends hash tags to duplicate filenames to protect old user uploads
