@@ -1889,7 +1889,7 @@ def resume_upload_api_view(request):
     
     try:
         # Save the file using Django's default storage manager (which routes directly to Supabase S3)
-        file_name = default_storage.save(f"resumes/{resume_file.name}", resume_file)
+        file_name = default_storage.save(resume_file.name, resume_file)
         file_url = default_storage.url(file_name)
         
         return Response({
