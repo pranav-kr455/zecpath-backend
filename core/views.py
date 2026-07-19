@@ -1858,3 +1858,54 @@ def admin_process_refund_api(request):
 
     except Transaction.DoesNotExist:
         return Response({"error": "TRANSACTION_NOT_FOUND", "message": "No transaction records match input criteria."}, status=status.HTTP_404_NOT_FOUND)
+
+
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.response import Response
+from rest_framework import status
+from django.core.files.storage import default_storage
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def resume_upload_api_view(request):
+    """
+    Day 53: Handles secure resume document uploads directly into the 
+    S3-compatible private Supabase storage bucket framework.
+    """
+    if 'resume' not in request.FILES:
+        return Response(
+            {
+                "success": False, 
+                "error": {
+                    "code": "VALIDATION_ERROR", 
+                    "message": "No file provided under the key 'resume'."
+                }
+            }, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+        
+    resume_file = request.FILES['resume']
+    
+    try:
+        # Save the file using Django's default storage manager (which routes directly to Supabase S3)
+        file_name = default_storage.save(f"resumes/{resume_file.name}", resume_file)
+        file_url = default_storage.url(file_name)
+        
+        return Response({
+            "success": True,
+            "message": "Resume uploaded successfully to secure cloud storage.",
+            "data": {
+                "file_name": file_name,
+                "file_url": file_url
+            }
+        }, status=status.HTTP_201_CREATED)
+        
+    except Exception as e:
+        return Response({
+            "success": False,
+            "error": {
+                "code": "STORAGE_ERROR",
+                "message": f"Failed to upload asset to cloud provider: {str(e)}"
+            }
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
