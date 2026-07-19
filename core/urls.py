@@ -35,7 +35,10 @@ from .views import (
     recruiter_dashboard_analytics_api,
     secure_candidate_onboarding_api,
     system_load_testing_benchmark_api,
-    test_day34_storage_view
+    test_day34_storage_view,
+    # 📁 DAY 53 INGESTION: Import the view function or class that handles the file upload
+    # (Update this line if your view name matches something else, like ResumeUploadView.as_view())
+    resume_upload_api_view 
 )
 
 # ==========================================
@@ -161,19 +164,21 @@ urlpatterns = [
     path('security/hardened-onboarding/', secure_candidate_onboarding_api, name='secure_onboarding_gateway'),
     path('system/performance/stress-test/', system_load_testing_benchmark_api, name='system_load_stress_test'),
 
-
     path('payment/checkout/create-order/', views.create_payment_order_api, name='payment_create_order'),
     path('payment/checkout/verify-signature/', views.verify_payment_signature_api, name='payment_verify_signature'),
 
     path('billing/premium/ai-reports/', views.premium_ai_analytics_report_api, name='premium_ai_reports'),
     path('billing/jobs/post/', views.post_monetized_job_api, name='post_monetized_job'),
-
     path('billing/premium/recruiter-insights/', views.premium_recruiter_insights_api, name='premium_recruiter_insights'),
-
-
 
     path('admin/finance/dashboard/', views.admin_revenue_dashboard_api, name='admin_finance_dashboard'),
     path('admin/finance/refund/', views.admin_process_refund_api, name='admin_finance_refund'),
+
+    # =========================================================================
+    # DAY 53: NEW RESUME STORAGE UPLOAD GATEWAY
+    # =========================================================================
+    # Note: If your view is a Class-Based View, use: resume_upload_api_view.as_view()
+    path('candidate/resume/upload/', resume_upload_api_view, name='candidate_resume_upload'),
 
     # =========================================================================
     # CATCH-ALL ROUTE (CRITICAL: MUST STAY AT THE ABSOLUTE BOTTOM)
