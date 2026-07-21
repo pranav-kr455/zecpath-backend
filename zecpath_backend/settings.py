@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from datetime import timedelta
 from decouple import config, Csv
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,14 +64,27 @@ TEMPLATES = [
 WSGI_APPLICATION = 'zecpath_backend.wsgi.application'
 
 # ==========================================
-# 3. DATABASE ENGINE MAPPING
+# 3. DYNAMIC DATABASE ENGINE CONFIGURATION
 # ==========================================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Production (Render) uses PostgreSQL via DATABASE_URL
+# Local Machine automatically falls back to SQLite
+DATABASE_URL = os.environ.get('DATABASE_URL')
+
+if DATABASE_URL:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,         # Connection pooling (10 mins)
+            conn_health_checks=True,   # Validates connections before reuse
+        )
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # ==========================================
 # 4. IDENTITY & AUTHENTICATION SYSTEMS
