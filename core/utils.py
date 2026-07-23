@@ -59,3 +59,17 @@ class SecureDataCryptographicGuard:
             return cipher.decrypt(encrypted_text.encode()).decode()
         except Exception:
             return "[DECRYPTION_FAILURE_INTEGRITY_COMPROMISED]"    
+
+
+
+import bleach
+
+def sanitize_user_input(raw_html: str) -> str:
+    """
+    Sanitizes raw user text/HTML to prevent XSS script injection attacks.
+    """
+    if not raw_html:
+        return ""
+    allowed_tags = ['b', 'i', 'u', 'em', 'strong', 'p', 'ul', 'ol', 'li', 'br']
+    allowed_attributes = {}
+    return bleach.clean(raw_html, tags=allowed_tags, attributes=allowed_attributes, strip=True)            

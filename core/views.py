@@ -755,12 +755,11 @@ class ResumeParsingExtractionView(APIView):
 
 # --- PREDEFINED CORE SKILL TAXONOMY MATRIX ---
 SKILL_LIBRARY = {
-    "Languages": ["python", "javascript", "typescript", "java", "c\+\+", "ruby", "golang", "php", "html", "css"],
-    "Frameworks & Libraries": ["django", "react", "react\.js", "node\.js", "angular", "vue", "flask", "fastapi", "express"],
+    "Languages": ["python", "javascript", "typescript", "java", "c++", "ruby", "golang", "php", "html", "css"],
+    "Frameworks & Libraries": ["django", "react", "react.js", "node.js", "angular", "vue", "flask", "fastapi", "express"],
     "Databases": ["postgresql", "mysql", "mongodb", "sqlite", "redis", "cassandra"],
     "DevOps & Tools": ["docker", "aws", "git", "github", "kubernetes", "jenkins", "cicd", "postman"]
 }
-
 def extract_entities_from_text(text):
     """
     Applies deterministic tokenization and regex pattern matching to map
@@ -1909,3 +1908,44 @@ def resume_upload_api_view(request):
                 "message": f"Failed to upload asset to cloud provider: {str(e)}"
             }
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+from django.core.cache import cache
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from .models import JobPost
+from .serializers import JobPostSerializer
+
+@api_view(['GET'])
+def cached_job_list_api_view(request):
+    """
+    Day 54: Fetches active jobs using Redis/In-Memory Query Caching.
+    Cache key expires in 5 minutes (300 seconds).
+    """
+    cache_key = 'active_jobs_list'
+    cached_jobs = cache.get(cache_key)
+
+    if not cached_jobs:
+        # Fetch from Database if Cache Miss
+        jobs = JobPost.objects.filter(is_active=True).select_related()
+        serializer = JobPostSerializer(jobs, many=True)
+        cached_jobs = serializer.data
+        
+        # Save to Cache for 300 Seconds
+        cache.set(cache_key, cached_jobs, timeout=300)
+
+    return Response({
+        "success": True,
+        "source": "cache" if cache.get(cache_key) else "database",
+        "data": cached_jobs
+    })    
+
+
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.decorators import throttle_classes, api_view
+
+@api_view(['POST'])
+@throttle_classes([ScopedRateThrottle])
+def login_view(request):
+    request.throttle_scope = 'auth_strict'  # Enforces 5 requests per minute
+    # Authentication logic here...

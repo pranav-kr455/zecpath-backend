@@ -104,27 +104,35 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # 🚀 ACTIVATE THE CENTRALIZED EXCEPTION ENGINE HERE:
     'EXCEPTION_HANDLER': 'core.exceptions.custom_api_exception_handler',
-    # 📉 Day 14: Production Pagination Layer
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,  # Limits maximum item count per network request to 10
-}
+    'PAGE_SIZE': 10,
+    
+    # 📉 DAY 55: RATE LIMITING & THROTTLING LAYER
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/minute',       # Anonymous users limited to 30 requests/min
+        'user': '1000/day',        # Authenticated users limited to 1000 requests/day
+        'auth_strict': '5/minute', # Strict limit for sensitive auth/login endpoints
+    }
+}# SimpleJWT Framework Configuration (Day 9)
 
-# SimpleJWT Framework Configuration (Day 9)
 SIMPLE_JWT = {
+    # Short-lived access tokens limit window of impact if intercepted
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    # Refresh tokens grant new access tokens for up to 7 days
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': False,
+    # ROTATION: Issues a NEW refresh token whenever the user refreshes
+    'ROTATE_REFRESH_TOKENS': True,
+    # BLACKLISTING: Immediately invalidates old refresh tokens upon rotation
     'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': False,
+    'UPDATE_LAST_LOGIN': True,
 
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
-    'AUDIENCE': None,
-    'ISSUER': None,
-    'JSON_ENCODER': None,
-
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id',
@@ -132,7 +140,6 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_FIELD': 'token_type',
 }
-
 # ==========================================
 # 5. INTERNATIONALIZATION & ASSETS
 # ==========================================
@@ -196,4 +203,4 @@ if USE_CLOUD_STORAGE:
     AWS_QUERYSTRING_AUTH = True            # Generates temporary cryptographically signed expiring links
     AWS_QUERYSTRING_EXPIRE = 900           # Link access authorization windows scale up to exactly 15 minutes
     AWS_DEFAULT_ACL = None                 # Enforces strict inheritance from private bucket configurations
-    AWS_S3_FILE_OVERWRITE = False          # Appends hash tags to duplicate filenames to protect old user uploads
+    AWS_S3_FILE_OVERWRITE = False          # Appends hash tags to duplicate filenames to protect old user uploads   

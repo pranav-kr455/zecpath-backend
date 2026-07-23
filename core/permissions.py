@@ -11,7 +11,7 @@ class IsAdminUser(BasePermission):
         return bool(
             request.user and 
             request.user.is_authenticated and 
-            str(request.user.role).upper() == str(Roles.ADMIN).upper()
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.ADMIN).upper()
         )
 
 
@@ -21,7 +21,7 @@ class IsEmployerUser(BasePermission):
         return bool(
             request.user and 
             request.user.is_authenticated and 
-            str(request.user.role).upper() == str(Roles.EMPLOYER).upper()
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.EMPLOYER).upper()
         )
 
 
@@ -31,17 +31,32 @@ class IsCandidateUser(BasePermission):
         return bool(
             request.user and 
             request.user.is_authenticated and 
-            str(request.user.role).upper() == str(Roles.CANDIDATE).upper()
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.CANDIDATE).upper()
+        )
+
+
+class IsEmployerOrReadOnly(BasePermission):
+    """
+    Day 55 Hardening: Read-only access for safe HTTP methods (GET, HEAD, OPTIONS).
+    Write operations require an authenticated user with the EMPLOYER role.
+    """
+    def has_permission(self, request, view):
+        if request.method in SAFE_METHODS:
+            return True
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.EMPLOYER).upper()
         )
 
 
 # ==========================================
-# 2. OBJECT-LEVEL OWNERSHIP ENFORCEMENT (DAY 16)
+# 2. OBJECT-LEVEL OWNERSHIP ENFORCEMENT
 # ==========================================
 
 class IsEmployerOwner(BasePermission):
     """
-    Day 16: Restricts operational modifications strictly to the specific 
+    Restricts operational modifications strictly to the specific 
     authenticated Employer account who originally created the record.
     """
     def has_permission(self, request, view):
@@ -50,10 +65,42 @@ class IsEmployerOwner(BasePermission):
         return bool(
             request.user and 
             request.user.is_authenticated and 
-            str(request.user.role).upper() == str(Roles.EMPLOYER).upper()
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.EMPLOYER).upper()
         )
 
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:
             return True
-        return obj.employer_profile.user == request.user
+        # Checks if object directly links to employer profile or user
+        owner_profile = getattr(obj, 'employer_profile', None)
+        if owner_profile and hasattr(owner_profile, 'user'):
+            return owner_profile.user == request.user
+        
+        owner_user = getattr(obj, 'user', None)
+        return owner_user == request.user
+
+
+class IsCandidateOwner(BasePermission):
+    """
+    Day 55 Hardening (BOLA Prevention): Ensures candidates can strictly access 
+    and modify only their own candidate profiles, applications, and documents.
+    """
+    def has_permission(self, request, view):
+        return bool(
+            request.user and 
+            request.user.is_authenticated and 
+            str(getattr(request.user, 'role', '')).upper() == str(Roles.CANDIDATE).upper()
+        )
+
+    def has_object_permission(self, request, view, obj):
+        # Admins override ownership checks
+        if str(getattr(request.user, 'role', '')).upper() == str(Roles.ADMIN).upper():
+            return True
+
+        # Resolves ownership across Candidate Profile, JobApplication, or Direct User link
+        candidate_rel = getattr(obj, 'candidate', getattr(obj, 'candidate_profile', None))
+        if candidate_rel and hasattr(candidate_rel, 'user'):
+            return candidate_rel.user == request.user
+
+        owner_user = getattr(obj, 'user', None)
+        return owner_user == request.user
